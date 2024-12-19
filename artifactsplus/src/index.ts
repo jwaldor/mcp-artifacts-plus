@@ -9,6 +9,7 @@ import { readdir, writeFile, access, mkdir, rename } from "fs/promises";
 import { join } from "path";
 // import { analyzeImports, installUIComponents } from "./utils.js";
 import { execa } from "execa";
+import { createNewArtifactFolder, cloneGithubRepo } from "./utils.js";
 
 // Create server instance
 const server = new Server(
@@ -27,6 +28,10 @@ const reactAppContentSchema = z.object({
   content: z.string(),
 });
 
+const createNewArtifactFolderSchema = z.object({
+  project_name: z.string(),
+});
+
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -41,8 +46,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "write-tsx",
-        description: "Write content to TSX file if it doesn't exist",
+        name: "write-artifact-tsx",
+        description: "Write content to TSX file that the user can easily run",
         inputSchema: {
           type: "object",
           properties: {
@@ -52,6 +57,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["content"],
+        },
+      },
+      {
+        name: "create-new-artifact-folder",
+        description: "Create a new artifact folder with an appropriate name",
+        inputSchema: {
+          type: "object",
+          properties: {
+            project_name: {
+              type: "string",
+              description:
+                "Name of folder that contains the new artifact project",
+            },
+          },
+          required: ["project_name"],
         },
       },
     ],
@@ -119,6 +139,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: "text",
             text: `Successfully wrote content to ${tsxPath} and ran cursor\nOutput: ${stdout}`,
+          },
+        ],
+      };
+    } else if (name === "create-new-artifact-folder") {
+      const { project_name } = createNewArtifactFolderSchema.parse(args);
+      const artifact_path = await createNewArtifactFolder(
+        "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store",
+        project_name
+      );
+      if (!artifact_path) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `A project with name ${project_name} already exists. Choose a different name.`,
+            },
+          ],
+        };
+      }
+      await cloneGithubRepo(artifact_path);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Created new artifact folder: ${artifact_path}`,
           },
         ],
       };
