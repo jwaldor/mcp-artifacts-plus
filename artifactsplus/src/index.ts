@@ -25,6 +25,7 @@ const server = new Server(
 );
 
 const reactAppContentSchema = z.object({
+  project_name: z.string(),
   content: z.string(),
 });
 
@@ -47,7 +48,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "write-artifact-tsx",
-        description: "Write content to TSX file that the user can easily run",
+        description:
+          "Write content to the App.tsx file of an artifact project.",
         inputSchema: {
           type: "object",
           properties: {
@@ -55,13 +57,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "Content to write to the TSX file",
             },
+            project_name: {
+              type: "string",
+              description: "Name of the project to write to",
+            },
           },
-          required: ["content"],
+          required: ["content", "project_name"],
         },
       },
       {
-        name: "create-new-artifact-folder",
-        description: "Create a new artifact folder with an appropriate name",
+        name: "create-new-react-artifact-folder",
+        description:
+          "Create a new artifact folder with an appropriate name. If the user creates an artifact folder, you should then write React artifacts using write-artifact-tsx rather than using antArtifact",
         inputSchema: {
           type: "object",
           properties: {
@@ -95,11 +102,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         ],
       };
-    } else if (name === "write-tsx") {
+    } else if (name === "write-artifact-tsx") {
+      const { content, project_name } = reactAppContentSchema.parse(args);
+      if (!content) {
+        throw new Error("No content provided to write");
+      }
       // Create backup directory if it doesn't exist
-      const backupDir = join(
-        "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/React/src/old_App"
-      );
+      const backupDir = `/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store/${project_name}/src/old_App`;
       try {
         await access(backupDir);
       } catch {
@@ -109,17 +118,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Generate unique filename with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-      const tsxPath =
-        "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/React/src/App.tsx";
+      const tsxPath = `/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store/${project_name}/src/App.tsx`;
 
       // Move existing file to backup location
-      await rename(tsxPath, backupDir + "/App_" + timestamp + ".tsx");
+      await rename(
+        tsxPath,
+        backupDir + "/App_replacedat_" + timestamp + ".tsx"
+      );
 
       // Write new content
-      const { content } = reactAppContentSchema.parse(args);
-      if (!content) {
-        throw new Error("No content provided to write");
-      }
+
       // const extractedComponents = analyzeImports(content);
       // const { components, output } = installUIComponents(
       //   "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/React",
@@ -131,7 +139,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       console.error(`Executing cursor from: ${cursorPath}`);
 
       const { stdout, stderr } = await execa(cursorPath, ["."], {
-        cwd: "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/React",
+        cwd: `/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store/${project_name}`,
       });
 
       return {
@@ -142,7 +150,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         ],
       };
-    } else if (name === "create-new-artifact-folder") {
+    } else if (name === "create-new-react-artifact-folder") {
       const { project_name } = createNewArtifactFolderSchema.parse(args);
       const artifact_path = await createNewArtifactFolder(
         "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store",

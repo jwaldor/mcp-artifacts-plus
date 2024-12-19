@@ -78,14 +78,17 @@ export async function cloneGithubRepo(artifact_path: string): Promise<string> {
 
   // Download and extract only the React folder
   await new Promise((resolve, reject) => {
-    response.body
+    (response.body as NodeJS.ReadableStream)
       .pipe(
         Extract({
           path: temp_path,
-          filter: (entry) =>
-            entry.path.startsWith("mcp-artifacts-plus-main/React/"),
         })
       )
+      .on("entry", (entry) => {
+        if (!entry.path.startsWith("mcp-artifacts-plus-main/React/")) {
+          entry.autodrain();
+        }
+      })
       .on("error", reject)
       .on("finish", resolve);
   });
