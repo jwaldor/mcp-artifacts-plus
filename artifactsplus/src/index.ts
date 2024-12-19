@@ -9,7 +9,7 @@ import { readdir, writeFile, access, mkdir, rename } from "fs/promises";
 import { join } from "path";
 // import { analyzeImports, installUIComponents } from "./utils.js";
 import { execa } from "execa";
-import { createNewArtifactFolder, cloneGithubRepo } from "./utils.js";
+import { createNewArtifactFolder, setUpArtifactProject } from "./utils.js";
 
 // Create server instance
 const server = new Server(
@@ -166,7 +166,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ],
         };
       }
-      await cloneGithubRepo(artifact_path);
+      await setUpArtifactProject(artifact_path);
 
       return {
         content: [

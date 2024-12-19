@@ -63,7 +63,9 @@ export async function createNewArtifactFolder(
   return fullPath;
 }
 
-export async function cloneGithubRepo(artifact_path: string): Promise<string> {
+export async function setUpArtifactProject(
+  artifact_path: string
+): Promise<string> {
   const zipUrl =
     "https://github.com/jwaldor/mcp-artifacts-plus/archive/refs/heads/main.zip";
   const response = await fetch(zipUrl);
@@ -96,6 +98,7 @@ export async function cloneGithubRepo(artifact_path: string): Promise<string> {
   // Move contents from nested React folder to temp_path
   const reactPath = path.join(temp_path, "mcp-artifacts-plus-main/React");
   await fs.promises.cp(reactPath, temp_path, { recursive: true });
+  await execa("bun", ["install"], { cwd: artifact_path });
 
   // Clean up the extra directory
   // await fs.promises.rm(path.join(temp_path, "mcp-artifacts-plus-main"), {
