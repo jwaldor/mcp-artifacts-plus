@@ -28,3 +28,7 @@ node_modules
 build
 artifacts_store
 gitexperiment
+
+artifactsplus/llm.txt
+artifactsplus/dev.txt
+artifactsplus/scratch.ts

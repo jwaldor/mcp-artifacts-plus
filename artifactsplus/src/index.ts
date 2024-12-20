@@ -9,12 +9,13 @@ import { readdir, writeFile, access, mkdir, rename } from "fs/promises";
 import { join } from "path";
 // import { analyzeImports, installUIComponents } from "./utils.js";
 import { execa } from "execa";
+import { Command } from "commander";
 import { createNewArtifactFolder, setUpArtifactProject } from "./utils.js";
 
 // Create server instance
 const server = new Server(
   {
-    name: "artifactsplus",
+    name: "mcp-artifacts-plus",
     version: "1.0.0",
   },
   {
@@ -38,15 +39,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "list-directory",
-        description: "List contents of the current directory",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          required: [],
-        },
-      },
-      {
         name: "write-artifact-tsx",
         description:
           "Write content to the App.tsx file of an artifact project.",
@@ -68,7 +60,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "create-new-react-artifact-folder",
         description:
-          "Create a new artifact folder with an appropriate name. If the user creates an artifact folder, you should then write React artifacts using write-artifact-tsx rather than using antArtifact",
+          "Create a new artifact folder with an appropriate name. If the user creates an artifact folder, you should then write React artifacts using write-artifact-tsx rather than using antArtifact. It also runs the project & opens it in Cursor.",
         inputSchema: {
           type: "object",
           properties: {
@@ -90,19 +82,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    if (name === "list-directory") {
-      const files = await readdir(process.cwd());
-      const fileList = files.join("\n");
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Contents of current directory:\n\n${fileList}`,
-          },
-        ],
-      };
-    } else if (name === "write-artifact-tsx") {
+    if (name === "write-artifact-tsx") {
       const { content, project_name } = reactAppContentSchema.parse(args);
       if (!content) {
         throw new Error("No content provided to write");
@@ -167,7 +147,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
       await setUpArtifactProject(artifact_path);
-
       return {
         content: [
           {
@@ -191,14 +170,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// Start the server
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Directory Lister MCP Server running on stdio");
-}
-
-main().catch((error) => {
-  console.error("Fatal error in main():", error);
-  process.exit(1);
-});
+const createServer = async () => {
+  try {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("new MCP server running on stdio");
+  } catch (error) {
+    console.error("Error creating server:", error);
+  }
+};
+const runServer = new Command("serve").action(createServer);
+const program = new Command();
+program.addCommand(runServer);

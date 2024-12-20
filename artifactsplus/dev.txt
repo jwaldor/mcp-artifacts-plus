@@ -1,5 +1,0 @@
-write-tsx very simple component
-
-make a new random artifact project and put something cool in it
-
-

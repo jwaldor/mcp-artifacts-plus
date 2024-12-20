@@ -1,5 +1,5 @@
 {
-  "name": "artifactsplus",
+  "name": "mcp-artifacts-plus",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "commander": "^12.1.0",
     "execa": "^9.5.2",
     "fs-extra": "^11.2.0",
     "node-fetch": "^3.3.2",
@@ -24,5 +25,14 @@
     "@types/node": "^22.10.2",
     "@types/unzip-stream": "^0.3.4",
     "typescript": "^5.7.2"
+  },
+  "bin": {
+    "mcp-artifacts-plus": "./build/index.js"
+  },
+  "files": [
+    "build/**/*"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

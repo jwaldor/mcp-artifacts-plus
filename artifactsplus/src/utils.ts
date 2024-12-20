@@ -3,12 +3,9 @@ import { execSync } from "child_process";
 import path from "path";
 import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
-import { move } from "fs-extra";
 import fetch from "node-fetch";
 import { Extract } from "unzip-stream";
 import fs from "fs";
-
-const GITHUB_REPO_PATH = "git@github.com:jwaldor/mcp-artifacts-plus.git";
 
 export function analyzeImports(fileContent: string): {
   importLines: string[];
