@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -5,12 +7,12 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { readdir, writeFile, access, mkdir, rename } from "fs/promises";
-import { join } from "path";
-// import { analyzeImports, installUIComponents } from "./utils.js";
+import { writeFile, access, mkdir, rename } from "fs/promises";
 import { execa } from "execa";
 import { Command } from "commander";
 import { createNewArtifactFolder, setUpArtifactProject } from "./utils.js";
+import path from "path";
+import { installCommand } from "./install.js";
 
 // Create server instance
 const server = new Server(
@@ -79,6 +81,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 // Handle tool execution
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (!process.env.PROJECTS_PATH) {
+    throw new Error("PROJECTS_PATH environment variable is not set");
+  }
+
   const { name, arguments: args } = request.params;
 
   try {
@@ -88,7 +94,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error("No content provided to write");
       }
       // Create backup directory if it doesn't exist
-      const backupDir = `/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store/${project_name}/src/old_App`;
+      const backupDir = path.join(
+        process.env.PROJECTS_PATH,
+        `${project_name}/src/old_App`
+      );
       try {
         await access(backupDir);
       } catch {
@@ -98,7 +107,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Generate unique filename with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-      const tsxPath = `/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store/${project_name}/src/App.tsx`;
+      const tsxPath = path.join(
+        process.env.PROJECTS_PATH,
+        `${project_name}/src/App.tsx`
+      );
 
       // Move existing file to backup location
       await rename(
@@ -106,34 +118,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         backupDir + "/App_replacedat_" + timestamp + ".tsx"
       );
 
-      // Write new content
-
-      // const extractedComponents = analyzeImports(content);
-      // const { components, output } = installUIComponents(
-      //   "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/React",
-      //   extractedComponents.uiComponents
-      // );
-
       await writeFile(tsxPath, content, "utf8");
       const cursorPath = "/usr/local/bin/cursor";
       console.error(`Executing cursor from: ${cursorPath}`);
 
-      const { stdout, stderr } = await execa(cursorPath, ["."], {
-        cwd: `/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store/${project_name}`,
-      });
+      try {
+        await execa(cursorPath, ["."], {
+          cwd: path.join(process.env.PROJECTS_PATH, `${project_name}`),
+        });
+      } catch (error) {
+        console.error("Error running cursor:", error);
+      }
 
       return {
         content: [
           {
             type: "text",
-            text: `Successfully wrote content to ${tsxPath} and ran cursor\nOutput: ${stdout}`,
+            text: `Successfully wrote content to ${tsxPath}`,
           },
         ],
       };
     } else if (name === "create-new-react-artifact-folder") {
       const { project_name } = createNewArtifactFolderSchema.parse(args);
       const artifact_path = await createNewArtifactFolder(
-        "/Users/jacobwaldor/FractalBootcamp/ClaudeEnvironment/artifacts_store",
+        process.env.PROJECTS_PATH,
         project_name
       );
       if (!artifact_path) {
@@ -182,3 +190,5 @@ const createServer = async () => {
 const runServer = new Command("serve").action(createServer);
 const program = new Command();
 program.addCommand(runServer);
+program.addCommand(installCommand);
+program.parse(process.argv);

@@ -32,3 +32,5 @@ gitexperiment
 artifactsplus/llm.txt
 artifactsplus/dev.txt
 artifactsplus/scratch.ts
+
+.env

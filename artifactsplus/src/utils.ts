@@ -97,7 +97,7 @@ export async function setUpArtifactProject(
   await fs.promises.cp(reactPath, temp_path, { recursive: true });
   await execa("bun", ["install"], { cwd: artifact_path });
 
-  // Clean up the extra directory
+  // Cleans up the extra directory—was scared to include this but I don't actually think there's an issue with it.
   // await fs.promises.rm(path.join(temp_path, "mcp-artifacts-plus-main"), {
   //   recursive: true,
   // });

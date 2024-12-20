@@ -2,6 +2,7 @@ import path from "path";
 import os from "os";
 import { Command } from "commander";
 import fs from "fs";
+import readline from "readline";
 
 function getClaudeDesktopConfigPath() {
   switch (process.platform) {
@@ -24,15 +25,14 @@ function getClaudeDesktopConfigPath() {
   }
 }
 
-export function updateClaudeDesktopConfig() {
+export function updateClaudeDesktopConfig(projectsPath: string) {
   const isNpx = Boolean(
     process.argv[1].includes("/_npx/") ||
       process.env.npm_command === "exec" ||
       process.env._?.includes("/_npx/")
   );
   if (!isNpx) {
-    console.error({ error: "Not running via npx" });
-    return;
+    throw new Error("Not running via npx");
   }
   const scriptPath = process.argv[1];
   const configPath = getClaudeDesktopConfigPath();
@@ -40,7 +40,11 @@ export function updateClaudeDesktopConfig() {
   try {
     let config: {
       mcpServers?: {
-        "mcp-artifacts-plus"?: { command: string; args?: string[] };
+        "mcp-artifacts-plus"?: {
+          command: string;
+          args?: string[];
+          env?: { PROJECTS_PATH: string };
+        };
       };
     } = {};
     try {
@@ -55,11 +59,17 @@ export function updateClaudeDesktopConfig() {
       config.mcpServers["mcp-artifacts-plus"] = {
         command: "C:\\Program Files\\nodejs\\node.exe",
         args: [scriptPath],
+        env: {
+          PROJECTS_PATH: projectsPath,
+        },
       };
     } else {
       config.mcpServers["mcp-artifacts-plus"] = {
         command: `npx`,
         args: ["mcp-artifacts-plus", "serve"],
+        env: {
+          PROJECTS_PATH: projectsPath,
+        },
       };
     }
 
@@ -77,7 +87,30 @@ export function updateClaudeDesktopConfig() {
   }
 }
 
-export const installCommand = new Command("install").action((args) => {
+export const installCommand = new Command("install").action(async () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const path = await new Promise<string>((resolve) => {
+    rl.question(
+      "Please enter the path where Claude should store React artifacts. The path has to already exist: ",
+      (answer) => {
+        rl.close();
+        resolve(answer);
+      }
+    );
+  });
+
+  // Verify the path exists
+  if (!fs.existsSync(path)) {
+    console.error("Error: The specified path does not exist");
+    process.exit(1);
+  }
+
   // Update Claude desktop config
-  updateClaudeDesktopConfig();
+  updateClaudeDesktopConfig(path);
+
+  console.log(`Successfully configured Claude to use artifacts path: ${path}`);
 });
