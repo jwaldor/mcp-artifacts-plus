@@ -1,5 +1,7 @@
 # 🚀 MCP Artifacts Plus
 
+https://user-images.githubusercontent.com/user-attachments/assets/6ff34e62-22a7-4696-b4ef-f182d3019172
+
 > A fun way to turn your Claude conversations into React projects! ✨
 
 This MCP server lets Claude create new React projects on your machine. It puts the projects in an environment with all of the dependencies that Claude accesses when it generates artifacts.
